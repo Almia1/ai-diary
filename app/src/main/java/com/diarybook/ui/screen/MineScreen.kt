@@ -21,7 +21,9 @@ import com.diarybook.ui.component.WhiteCard
 import com.diarybook.ui.theme.*
 
 @Composable
-fun MineScreen() {
+fun MineScreen(
+    onNavigateToCategoryManagement: () -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -31,6 +33,8 @@ fun MineScreen() {
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        MenuItemCard("分类管理", "🏷️", onClick = onNavigateToCategoryManagement)
+        Spacer(modifier = Modifier.height(8.dp))
         MenuItemCard("主题设置", "🎨")
         Spacer(modifier = Modifier.height(8.dp))
         MenuItemCard("数据备份", "💾")
@@ -85,7 +89,11 @@ private fun UserProfileCard() {
 }
 
 @Composable
-private fun MenuItemCard(title: String, icon: String) {
+private fun MenuItemCard(
+    title: String,
+    icon: String,
+    onClick: () -> Unit = {}
+) {
     WhiteCard(
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
@@ -95,7 +103,7 @@ private fun MenuItemCard(title: String, icon: String) {
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = {}
+                    onClick = onClick
                 )
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,

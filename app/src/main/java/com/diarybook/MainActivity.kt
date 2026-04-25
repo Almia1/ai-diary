@@ -16,6 +16,14 @@ import com.diarybook.ui.navigation.AppNavHost
 import com.diarybook.ui.theme.DiaryBookTheme
 import com.diarybook.viewmodel.BillViewModel
 import com.diarybook.viewmodel.BillViewModelFactory
+import com.diarybook.viewmodel.BookViewModel
+import com.diarybook.viewmodel.BookViewModelFactory
+import com.diarybook.viewmodel.CategoryViewModel
+import com.diarybook.viewmodel.CategoryViewModelFactory
+import com.diarybook.viewmodel.BudgetViewModel
+import com.diarybook.viewmodel.BudgetViewModelFactory
+import com.diarybook.viewmodel.DebtViewModel
+import com.diarybook.viewmodel.DebtViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,14 +34,38 @@ class MainActivity : ComponentActivity() {
                 val billViewModel: BillViewModel = viewModel(
                     factory = BillViewModelFactory(application)
                 )
-                MainApp(billViewModel = billViewModel)
+                val bookViewModel: BookViewModel = viewModel(
+                    factory = BookViewModelFactory(application)
+                )
+                val categoryViewModel: CategoryViewModel = viewModel(
+                    factory = CategoryViewModelFactory(application)
+                )
+                val budgetViewModel: BudgetViewModel = viewModel(
+                    factory = BudgetViewModelFactory(application)
+                )
+                val debtViewModel: DebtViewModel = viewModel(
+                    factory = DebtViewModelFactory(application)
+                )
+                MainApp(
+                    billViewModel = billViewModel,
+                    bookViewModel = bookViewModel,
+                    categoryViewModel = categoryViewModel,
+                    budgetViewModel = budgetViewModel,
+                    debtViewModel = debtViewModel
+                )
             }
         }
     }
 }
 
 @Composable
-fun MainApp(billViewModel: BillViewModel) {
+fun MainApp(
+    billViewModel: BillViewModel,
+    bookViewModel: BookViewModel,
+    categoryViewModel: CategoryViewModel,
+    budgetViewModel: BudgetViewModel,
+    debtViewModel: DebtViewModel
+) {
     val navController = rememberNavController()
     var selectedRoute by remember { mutableStateOf("detail") }
 
@@ -59,9 +91,11 @@ fun MainApp(billViewModel: BillViewModel) {
             navController = navController,
             startDestination = "detail",
             billViewModel = billViewModel,
+            bookViewModel = bookViewModel,
+            categoryViewModel = categoryViewModel,
+            budgetViewModel = budgetViewModel,
+            debtViewModel = debtViewModel,
             modifier = Modifier.padding(innerPadding)
         )
     }
 }
-
-

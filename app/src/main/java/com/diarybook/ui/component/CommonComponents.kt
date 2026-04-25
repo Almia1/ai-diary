@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diarybook.ui.theme.*
+import com.diarybook.util.mapCategoryIcon
 
 @Composable
 fun GradientCard(
@@ -228,7 +229,7 @@ fun BillItemCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = bill.categoryIcon,
+                    text = mapCategoryIcon(bill.categoryIcon),
                     fontSize = 24.sp
                 )
             }

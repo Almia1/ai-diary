@@ -19,31 +19,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diarybook.data.local.entity.Budget
+import com.diarybook.data.local.entity.Debt
 import com.diarybook.ui.component.AmountDisplay
 import com.diarybook.ui.component.GradientCard
 import com.diarybook.ui.component.SectionTitle
 import com.diarybook.ui.component.WhiteCard
 import com.diarybook.ui.theme.*
+import com.diarybook.viewmodel.BudgetViewModel
+import com.diarybook.viewmodel.DebtViewModel
+import java.util.Calendar
 
 @Composable
-fun AssetScreen() {
-    var totalAsset by remember { mutableStateOf(125800.50) }
-    var totalDebt by remember { mutableStateOf(5000.00) }
+fun AssetScreen(
+    budgetViewModel: BudgetViewModel? = null,
+    debtViewModel: DebtViewModel? = null
+) {
+    // 从 ViewModel 获取真实数据
+    val debts by debtViewModel?.debts?.collectAsState(initial = emptyList<Debt>()) ?: remember { mutableStateOf(emptyList<Debt>()) }
+    val budgets by budgetViewModel?.budgets?.collectAsState(initial = emptyList<Budget>()) ?: remember { mutableStateOf(emptyList<Budget>()) }
     
-    val debts = remember {
-        listOf(
-            DebtItem("信用卡", "💳", 3000.00, "2026-04-25", ExpenseRed),
-            DebtItem("朋友借款", "👤", 2000.00, "2026-05-01", Color(0xFFFF9800))
-        )
-    }
-    
-    val budgets = remember {
-        listOf(
-            BudgetItem("餐饮", "🍽️", 2000.00, 1250.00, ExpenseRed),
-            BudgetItem("购物", "🛒", 1500.00, 890.50, Color(0xFF9C27B0)),
-            BudgetItem("交通", "🚗", 800.00, 480.00, Color(0xFF2196F3))
-        )
-    }
+    // 计算总资产和总负债
+    val totalDebt = debts.sumOf { it.amount }
+    val totalBudget = budgets.sumOf { it.amount }
+    val totalSpent = budgets.sumOf { it.used_amount ?: 0.0 }
+    val totalAsset = totalBudget - totalSpent // 简化计算：预算剩余作为资产
     
     Column(
         modifier = Modifier
@@ -69,8 +69,14 @@ fun AssetScreen() {
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(debts, key = { it.name }) { debt ->
-                DebtItemCard(debt = debt)
+            if (debts.isEmpty()) {
+                item {
+                    EmptyStateItem("暂无债务记录")
+                }
+            } else {
+                items(debts, key = { it.id }) { debt ->
+                    DebtItemCard(debt = debt)
+                }
             }
             
             item {
@@ -84,8 +90,14 @@ fun AssetScreen() {
                 )
             }
             
-            items(budgets, key = { it.name }) { budget ->
-                BudgetItemCard(budget = budget)
+            if (budgets.isEmpty()) {
+                item {
+                    EmptyStateItem("暂无预算记录")
+                }
+            } else {
+                items(budgets, key = { it.id }) { budget ->
+                    BudgetItemCard(budget = budget)
+                }
             }
         }
     }
@@ -151,16 +163,12 @@ private fun AssetOverviewCard(
     }
 }
 
-data class DebtItem(
-    val name: String,
-    val icon: String,
-    val amount: Double,
-    val dueDate: String,
-    val color: Color
-)
-
 @Composable
-private fun DebtItemCard(debt: DebtItem) {
+private fun DebtItemCard(debt: Debt) {
+    val color = if (debt.type == 0) ExpenseRed else IncomeGreen
+    val icon = if (debt.type == 0) "💳" else "👤"
+    val statusText = if (debt.status == 0) "未还清" else "已还清"
+    
     WhiteCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -175,11 +183,11 @@ private fun DebtItemCard(debt: DebtItem) {
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(debt.color.copy(alpha = 0.1f)),
+                        .background(color.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = debt.icon,
+                        text = icon,
                         fontSize = 24.sp
                     )
                 }
@@ -190,11 +198,22 @@ private fun DebtItemCard(debt: DebtItem) {
                         fontWeight = FontWeight.Medium,
                         color = TextPrimary
                     )
-                    Text(
-                        text = "到期: ${debt.dueDate}",
-                        fontSize = 12.sp,
-                        color = TextTertiary
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "到期: ${debt.due_date}",
+                            fontSize = 12.sp,
+                            color = TextTertiary
+                        )
+                        Text(
+                            text = statusText,
+                            fontSize = 12.sp,
+                            color = if (debt.status == 0) ExpenseRed else IncomeGreen,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
             
@@ -202,11 +221,22 @@ private fun DebtItemCard(debt: DebtItem) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                AmountDisplay(
-                    amount = debt.amount,
-                    isExpense = true,
-                    fontSize = 16
-                )
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    AmountDisplay(
+                        amount = debt.amount,
+                        isExpense = true,
+                        fontSize = 16
+                    )
+                    if (debt.paid_amount != null && debt.paid_amount > 0) {
+                        Text(
+                            text = "已还: ¥${String.format("%.2f", debt.paid_amount)}",
+                            fontSize = 11.sp,
+                            color = TextTertiary
+                        )
+                    }
+                }
                 Icon(
                     imageVector = Icons.Default.ArrowForwardIos,
                     contentDescription = null,
@@ -218,17 +248,15 @@ private fun DebtItemCard(debt: DebtItem) {
     }
 }
 
-data class BudgetItem(
-    val name: String,
-    val icon: String,
-    val budget: Double,
-    val spent: Double,
-    val color: Color
-)
-
 @Composable
-private fun BudgetItemCard(budget: BudgetItem) {
-    val percentage = (budget.spent / budget.budget * 100).coerceAtMost(100.0)
+private fun BudgetItemCard(budget: Budget) {
+    val percentage = if (budget.amount > 0) {
+        ((budget.used_amount ?: 0.0) / budget.amount * 100).coerceAtMost(100.0)
+    } else {
+        0.0
+    }
+    val color = if (budget.type == 0) ExpenseRed else IncomeGreen
+    val typeName = if (budget.type == 0) "支出" else "收入"
     
     WhiteCard {
         Column(
@@ -247,23 +275,23 @@ private fun BudgetItemCard(budget: BudgetItem) {
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(budget.color.copy(alpha = 0.1f)),
+                            .background(color.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = budget.icon,
+                            text = if (budget.type == 0) "💰" else "📈",
                             fontSize = 24.sp
                         )
                     }
                     Column {
                         Text(
-                            text = budget.name,
+                            text = "${typeName}预算",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextPrimary
                         )
                         Text(
-                            text = "¥${String.format("%.2f", budget.spent)} / ¥${String.format("%.2f", budget.budget)}",
+                            text = "¥${String.format("%.2f", budget.used_amount ?: 0.0)} / ¥${String.format("%.2f", budget.amount)}",
                             fontSize = 12.sp,
                             color = TextTertiary
                         )
@@ -274,7 +302,7 @@ private fun BudgetItemCard(budget: BudgetItem) {
                     text = "${String.format("%.1f", percentage)}%",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = budget.color
+                    color = color
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -290,9 +318,26 @@ private fun BudgetItemCard(budget: BudgetItem) {
                         .fillMaxHeight()
                         .fillMaxWidth(percentage.toFloat() / 100)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(budget.color)
+                        .background(color)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyStateItem(message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            fontSize = 14.sp,
+            color = TextTertiary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }

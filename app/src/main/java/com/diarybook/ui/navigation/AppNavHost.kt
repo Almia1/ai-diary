@@ -8,16 +8,25 @@ import androidx.navigation.compose.composable
 import com.diarybook.ui.screen.AddBillScreen
 import com.diarybook.ui.screen.AssetScreen
 import com.diarybook.ui.screen.CalendarScreen
+import com.diarybook.ui.screen.CategoryManagementScreen
 import com.diarybook.ui.screen.DetailScreen
 import com.diarybook.ui.screen.MineScreen
 import com.diarybook.ui.screen.StatisticsScreen
 import com.diarybook.viewmodel.BillViewModel
+import com.diarybook.viewmodel.BookViewModel
+import com.diarybook.viewmodel.CategoryViewModel
+import com.diarybook.viewmodel.BudgetViewModel
+import com.diarybook.viewmodel.DebtViewModel
 
 @Composable
 fun AppNavHost(
     navController: NavHostController,
     startDestination: String = "detail",
     billViewModel: BillViewModel,
+    bookViewModel: BookViewModel,
+    categoryViewModel: CategoryViewModel,
+    budgetViewModel: BudgetViewModel,
+    debtViewModel: DebtViewModel,
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -30,7 +39,8 @@ fun AppNavHost(
                 onNavigateToAddBill = {
                     navController.navigate("add_bill")
                 },
-                billViewModel = billViewModel
+                billViewModel = billViewModel,
+                bookViewModel = bookViewModel
             )
         }
         composable("calendar") {
@@ -40,10 +50,24 @@ fun AppNavHost(
             StatisticsScreen()
         }
         composable("asset") {
-            AssetScreen()
+            AssetScreen(
+                budgetViewModel = budgetViewModel,
+                debtViewModel = debtViewModel
+            )
         }
         composable("mine") {
-            MineScreen()
+            MineScreen(
+                onNavigateToCategoryManagement = {
+                    navController.navigate("category_management")
+                }
+            )
+        }
+        composable("category_management") {
+            CategoryManagementScreen(
+                onBackClick = { navController.popBackStack() },
+                categoryViewModel = categoryViewModel,
+                bookViewModel = bookViewModel
+            )
         }
         composable("add_bill") {
             AddBillScreen(
@@ -51,7 +75,8 @@ fun AppNavHost(
                 onSaveClick = { _, _, _, _, _, _, _ ->
                     navController.popBackStack()
                 },
-                billViewModel = billViewModel
+                billViewModel = billViewModel,
+                categoryViewModel = categoryViewModel
             )
         }
     }

@@ -19,20 +19,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diarybook.data.local.entity.Category
 import com.diarybook.ui.component.PrimaryButton
 import com.diarybook.ui.component.WhiteCard
 import com.diarybook.ui.theme.*
+import com.diarybook.util.mapCategoryIcon
+import com.diarybook.util.parseColorSafely
 import com.diarybook.viewmodel.BillViewModel
+import com.diarybook.viewmodel.CategoryViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-data class CategoryItem(
-    val id: Long,
-    val name: String,
-    val icon: String,
-    val color: Color
-)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBillScreen(
     onBackClick: () -> Unit = {},
@@ -45,41 +43,31 @@ fun AddBillScreen(
         date: String,
         remark: String
     ) -> Unit = { _, _, _, _, _, _, _ -> },
-    billViewModel: BillViewModel? = null
+    billViewModel: BillViewModel? = null,
+    categoryViewModel: CategoryViewModel? = null
 ) {
     var isExpense by remember { mutableStateOf(true) }
     var amount by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf<CategoryItem?>(null) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
     var selectedDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
     var remark by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showCategorySelector by remember { mutableStateOf(false) }
     
     val defaultBook = billViewModel?.defaultBook?.collectAsState()?.value
     val defaultBookId = defaultBook?.id ?: 0
-
-    val expenseCategories = remember {
-        listOf(
-            CategoryItem(1, "餐饮", "🍽️", Color(0xFFFF5722)),
-            CategoryItem(2, "交通", "🚗", Color(0xFF2196F3)),
-            CategoryItem(3, "购物", "🛒", Color(0xFF9C27B0)),
-            CategoryItem(4, "娱乐", "🎬", Color(0xFFFF9800)),
-            CategoryItem(5, "医疗", "🏥", Color(0xFFF44336)),
-            CategoryItem(6, "教育", "📚", Color(0xFF4CAF50)),
-            CategoryItem(7, "住房", "🏠", Color(0xFF3F51B5)),
-            CategoryItem(8, "其他", "📌", Color(0xFF607D8B))
-        )
+    
+    // 当账本变化时，加载对应分类
+    LaunchedEffect(defaultBookId) {
+        if (defaultBookId > 0) {
+            categoryViewModel?.loadCategories(defaultBookId)
+        }
     }
-
-    val incomeCategories = remember {
-        listOf(
-            CategoryItem(9, "工资", "💰", Color(0xFF4CAF50)),
-            CategoryItem(10, "奖金", "🎁", Color(0xFFFF9800)),
-            CategoryItem(11, "投资", "📈", Color(0xFF2196F3)),
-            CategoryItem(12, "兼职", "💼", Color(0xFF9C27B0)),
-            CategoryItem(13, "其他", "📌", Color(0xFF607D8B))
-        )
-    }
-
+    
+    // 从 CategoryViewModel 获取分类数据
+    val expenseCategories by categoryViewModel?.expenseCategories?.collectAsState(initial = emptyList()) ?: remember { mutableStateOf(emptyList<Category>()) }
+    val incomeCategories by categoryViewModel?.incomeCategories?.collectAsState(initial = emptyList<Category>()) ?: remember { mutableStateOf(emptyList<Category>()) }
+    
     val categories = if (isExpense) expenseCategories else incomeCategories
 
     Column(
@@ -94,7 +82,10 @@ fun AddBillScreen(
         
         TypeSwitcher(
             isExpense = isExpense,
-            onTypeChange = { isExpense = it }
+            onTypeChange = { 
+                isExpense = it
+                selectedCategory = null // 切换类型时重置分类选择
+            }
         )
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -108,9 +99,8 @@ fun AddBillScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         CategorySelector(
-            categories = categories,
             selectedCategory = selectedCategory,
-            onCategorySelected = { selectedCategory = it }
+            onClick = { showCategorySelector = true }
         )
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -127,7 +117,7 @@ fun AddBillScreen(
             onRemarkChange = { remark = it }
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(80.dp))
     }
     
     Box(
@@ -145,7 +135,7 @@ fun AddBillScreen(
                 val categoryIconValue = selectedCategory?.icon ?: ""
                 
                 billViewModel?.insertBill(
-                    bookId = defaultBookId, // 使用默认账本ID
+                    bookId = defaultBookId,
                     type = if (isExpense) 0 else 1,
                     categoryId = categoryIdValue,
                     categoryName = categoryNameValue,
@@ -166,6 +156,20 @@ fun AddBillScreen(
                 )
             },
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+    
+    // 分类选择器 BottomSheet
+    if (showCategorySelector) {
+        CategorySelectorBottomSheet(
+            categories = categories,
+            isExpense = isExpense,
+            selectedCategoryId = selectedCategory?.id,
+            onDismiss = { showCategorySelector = false },
+            onCategorySelected = { category ->
+                selectedCategory = category
+                showCategorySelector = false
+            }
         )
     }
 }
@@ -330,9 +334,8 @@ private fun AmountInputField(
 
 @Composable
 private fun CategorySelector(
-    categories: List<CategoryItem>,
-    selectedCategory: CategoryItem?,
-    onCategorySelected: (CategoryItem) -> Unit
+    selectedCategory: Category?,
+    onClick: () -> Unit
 ) {
     WhiteCard {
         Column(
@@ -343,82 +346,150 @@ private fun CategorySelector(
                 fontSize = 14.sp,
                 color = TextTertiary
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            GridLayout(
-                columns = 4,
-                items = categories,
-                modifier = Modifier.fillMaxWidth()
-            ) { category ->
-                CategoryItemView(
-                    category = category,
-                    isSelected = selectedCategory?.id == category.id,
-                    onClick = { onCategorySelected(category) }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick
+                    )
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (selectedCategory != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(parseColorSafely(selectedCategory.color).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = mapCategoryIcon(selectedCategory.icon),
+                                fontSize = 22.sp
+                            )
+                        }
+                        Text(
+                            text = selectedCategory.name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextPrimary
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "请选择分类",
+                        fontSize = 16.sp,
+                        color = TextTertiary
+                    )
+                }
+                
+                Text(
+                    text = ">",
+                    fontSize = 18.sp,
+                    color = TextTertiary
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoryItemView(
-    category: CategoryItem,
-    isSelected: Boolean,
-    onClick: () -> Unit
+private fun CategorySelectorBottomSheet(
+    categories: List<Category>,
+    isExpense: Boolean,
+    selectedCategoryId: Long?,
+    onDismiss: () -> Unit,
+    onCategorySelected: (Category) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (isSelected) category.color else LightPurple),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(
-                text = category.icon,
-                fontSize = 24.sp
+                text = if (isExpense) "支出分类" else "收入分类",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                modifier = Modifier.padding(vertical = 8.dp)
             )
+            
+            // 网格布局显示分类
+            val columns = 4
+            categories.chunked(columns).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    rowItems.forEach { category ->
+                        CategoryGridItem(
+                            category = category,
+                            isSelected = category.id == selectedCategoryId,
+                            onClick = { onCategorySelected(category) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // 如果最后一行不足4个，用空白填充
+                    repeat(columns - rowItems.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = category.name,
-            fontSize = 12.sp,
-            color = if (isSelected) TextPrimary else TextSecondary
-        )
     }
 }
 
 @Composable
-private fun <T> GridLayout(
-    columns: Int,
-    items: List<T>,
-    modifier: Modifier = Modifier,
-    itemContent: @Composable (T) -> Unit
+private fun CategoryGridItem(
+    category: Category,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        items.chunked(columns).forEach { rowItems ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                rowItems.forEach { item ->
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        itemContent(item)
-                    }
-                }
-            }
+    Column(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    if (isSelected) parseColorSafely(category.color) else LightPurple
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = mapCategoryIcon(category.icon),
+                fontSize = 26.sp
+            )
         }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = category.name,
+            fontSize = 12.sp,
+            color = if (isSelected) TextPrimary else TextSecondary,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

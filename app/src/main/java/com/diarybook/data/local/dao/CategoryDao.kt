@@ -15,6 +15,9 @@ interface CategoryDao {
     @Query("SELECT * FROM tb_category WHERE (book_id = :bookId OR book_id = 0) ORDER BY sort ASC, create_time ASC")
     suspend fun getAllCategoriesSync(bookId: Long): List<Category>
     
+    @Query("SELECT * FROM tb_category ORDER BY book_id ASC, type ASC, sort ASC")
+    suspend fun getAllCategories(): List<Category>
+    
     @Query("SELECT * FROM tb_category WHERE id = :id")
     suspend fun getCategoryById(id: Long): Category?
     

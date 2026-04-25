@@ -11,4 +11,6 @@ sealed class NavRoutes(val route: String) {
         fun createRoute(billId: Long) = "edit_bill/$billId"
     }
     object OcrRecognition : NavRoutes("ocr_recognition")
+    object CategoryManagement : NavRoutes("category_management")
+    object BookManagement : NavRoutes("book_management")
 }
