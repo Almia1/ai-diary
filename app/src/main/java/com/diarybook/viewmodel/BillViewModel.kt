@@ -28,11 +28,44 @@ class BillViewModel(application: Application) : AndroidViewModel(application) {
     private val _defaultBook = MutableStateFlow<Book?>(null)
     val defaultBook: StateFlow<Book?> = _defaultBook.asStateFlow()
     
+    // 当前选中的账本ID，用于过滤账单
+    private var currentFilterBookId: Long = 0
+    
     init {
         val app = application as DiaryBookApplication
         repository = BillRepository(app.database.billDao())
-        loadBills()
         loadDefaultBook()
+        // 不在这里加载账单，由外部调用 loadBillsForBook 时再加载
+    }
+    
+    /**
+     * 加载指定账本的账单数据
+     * @param bookId 账本ID，如果为0则加载所有账单
+     */
+    fun loadBillsForBook(bookId: Long) {
+        currentFilterBookId = bookId
+        viewModelScope.launch {
+            if (bookId > 0) {
+                repository.getBillsByBook(bookId).collect { billList ->
+                    _bills.value = billList
+                    calculateTotals(billList)
+                }
+            } else {
+                repository.getAllBills().collect { billList ->
+                    _bills.value = billList
+                    calculateTotals(billList)
+                }
+            }
+        }
+    }
+    
+    /**
+     * 与 BookViewModel 联动，当切换账本时自动加载对应账单
+     */
+    fun syncWithBook(bookId: Long) {
+        if (currentFilterBookId != bookId) {
+            loadBillsForBook(bookId)
+        }
     }
     
     private fun loadDefaultBook() {
@@ -40,14 +73,9 @@ class BillViewModel(application: Application) : AndroidViewModel(application) {
             val app = getApplication<DiaryBookApplication>()
             val book = app.database.bookDao().getDefaultBook()
             _defaultBook.value = book
-        }
-    }
-    
-    private fun loadBills() {
-        viewModelScope.launch {
-            repository.getAllBills().collect { billList ->
-                _bills.value = billList
-                calculateTotals(billList)
+            // 默认加载默认账本的账单
+            if (book != null) {
+                loadBillsForBook(book.id)
             }
         }
     }

@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.diarybook.ui.screen.AddBillScreen
 import com.diarybook.ui.screen.AssetScreen
+import com.diarybook.ui.screen.BookManagementScreen
 import com.diarybook.ui.screen.CalendarScreen
 import com.diarybook.ui.screen.CategoryManagementScreen
 import com.diarybook.ui.screen.DetailScreen
@@ -59,7 +60,16 @@ fun AppNavHost(
             MineScreen(
                 onNavigateToCategoryManagement = {
                     navController.navigate("category_management")
+                },
+                onNavigateToBookManagement = {
+                    navController.navigate("book_management")
                 }
+            )
+        }
+        composable("book_management") {
+            BookManagementScreen(
+                onBackClick = { navController.popBackStack() },
+                bookViewModel = bookViewModel
             )
         }
         composable("category_management") {

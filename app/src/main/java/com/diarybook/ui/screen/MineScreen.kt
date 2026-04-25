@@ -22,7 +22,8 @@ import com.diarybook.ui.theme.*
 
 @Composable
 fun MineScreen(
-    onNavigateToCategoryManagement: () -> Unit = {}
+    onNavigateToCategoryManagement: () -> Unit = {},
+    onNavigateToBookManagement: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -33,6 +34,8 @@ fun MineScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        MenuItemCard("账本管理", "📒", onClick = onNavigateToBookManagement)
+        Spacer(modifier = Modifier.height(8.dp))
         MenuItemCard("分类管理", "🏷️", onClick = onNavigateToCategoryManagement)
         Spacer(modifier = Modifier.height(8.dp))
         MenuItemCard("主题设置", "🎨")

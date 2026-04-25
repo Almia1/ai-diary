@@ -42,6 +42,13 @@ fun DetailScreen(
     val books by bookViewModel.books.collectAsState()
     var showBookSelector by remember { mutableStateOf(false) }
     
+    // 当账本切换时，同步刷新账单列表
+    LaunchedEffect(currentBook?.id) {
+        currentBook?.let { book ->
+            billViewModel.syncWithBook(book.id)
+        }
+    }
+    
     val billItems = remember(bills) {
         bills.map { bill ->
             BillItem(

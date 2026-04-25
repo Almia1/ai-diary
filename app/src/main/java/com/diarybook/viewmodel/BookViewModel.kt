@@ -49,6 +49,16 @@ class BookViewModel(application: Application) : AndroidViewModel(application) {
     
     fun setCurrentBook(book: Book) {
         _currentBook.value = book
+        // 通知外部监听者账本已切换，可以在这里触发其他操作
+        // 例如：通过回调或者在 UI 层处理
+    }
+    
+    /**
+     * 切换账本并返回新账本ID，供外部调用者（如BillViewModel）同步数据
+     */
+    fun switchBook(book: Book, onBookSwitched: (Long) -> Unit = {}) {
+        _currentBook.value = book
+        onBookSwitched(book.id)
     }
     
     fun addBook(name: String, icon: String, color: String) {
