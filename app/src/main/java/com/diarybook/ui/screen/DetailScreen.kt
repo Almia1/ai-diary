@@ -73,7 +73,8 @@ fun DetailScreen(
         ) {
             DetailTopBar(
                 currentBookName = currentBook?.name ?: "日常账本",
-                onBookClick = { showBookSelector = true }
+                onBookClick = { showBookSelector = true },
+                onCameraClick = onNavigateToOcrRecognition
             )
             BalanceOverviewCard(
                 balance = totalIncome - totalExpense,

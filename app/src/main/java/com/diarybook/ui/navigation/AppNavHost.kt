@@ -40,6 +40,9 @@ fun AppNavHost(
                 onNavigateToAddBill = {
                     navController.navigate("add_bill")
                 },
+                onNavigateToOcrRecognition = {
+                    navController.navigate("ocr_recognition")
+                },
                 billViewModel = billViewModel,
                 bookViewModel = bookViewModel
             )
@@ -84,6 +87,16 @@ fun AppNavHost(
                 onBackClick = { navController.popBackStack() },
                 onSaveClick = { _, _, _, _, _, _, _ ->
                     navController.popBackStack()
+                },
+                billViewModel = billViewModel,
+                categoryViewModel = categoryViewModel
+            )
+        }
+        composable("ocr_recognition") {
+            OcrRecognitionScreen(
+                onBackClick = { navController.popBackStack() },
+                onSaveSuccess = {
+                    navController.popBackStack("detail", false)
                 },
                 billViewModel = billViewModel,
                 categoryViewModel = categoryViewModel
