@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>宇宙星空 - 探索无尽星河</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Noto+Serif+SC:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --space-black: #02010a;
+      --deep-indigo: #0a0a2e;
+      --star-white: #f0e6d3;
+      --nebula-purple: #6b3fa0;
+      --nebula-blue: #2a4a8c;
+      --accent-cyan: #00e5ff;
+      --accent-gold: #ffd54f;
+      --accent-pink: #ff6b9d;
+      --glass-bg: rgba(255, 255, 255, 0.04);
+      --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--nebula-purple) var(--space-black);
+    }
+
+    html::-webkit-scrollbar {
+      width: 6px;
+    }
+    html::-webkit-scrollbar-track {
+      background: var(--space-black);
+    }
+    html::-webkit-scrollbar-thumb {
+      background: var(--nebula-purple);
+      border-radius: 3px;
+    }
+
+    body {
+      font-family: 'Noto Serif SC', serif;
+      background: var(--space-black);
+      color: var(--star-white);
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── Canvas Starfield ── */
+    #starfield {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Nebula Overlays ── */
+    .nebula-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 20% 30%, rgba(107, 63, 160, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 75% 60%, rgba(42, 74, 140, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 80%, rgba(255, 107, 157, 0.06) 0%, transparent 50%);
+    }
+
+    /* ── Main Content ── */
+    .main-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    section {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 2rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      width: 100%;
+    }
+
+    /* ── Section Reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Hero ── */
+    .hero-section {
+      text-align: center;
+    }
+    .hero-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2.4rem, 7vw, 5.5rem);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+      background: linear-gradient(180deg, #ffffff 0%, #c4b5fd 40%, #818cf8 70%, transparent 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.2rem;
+    }
+    .hero-subtitle {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(0.9rem, 2vw, 1.3rem);
+      font-weight: 400;
+      letter-spacing: 0.25em;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 2.5rem;
+    }
+    .hero-desc {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.45);
+      max-width: 520px;
+      margin: 0 auto 3rem;
+      line-height: 1.9;
+    }
+    .scroll-indicator {
+      position: absolute;
+      bottom: 3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: floatDown 2.2s ease-in-out infinite;
+    }
+    .scroll-line {
+      width: 1px;
+      height: 48px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.6), transparent);
+      margin: 0 auto;
+    }
+    .scroll-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.35);
+      margin-top: 0.6rem;
+      text-align: center;
+    }
+
+    @keyframes floatDown {
+      0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.7; }
+      50% { transform: translateX(-50%) translateY(14px); opacity: 1; }
+    }
+
+    /* ── Constellation Section ── */
+    .section-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.35em;
+      color: var(--accent-cyan);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+    }
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+    }
+    .section-desc {
+      color: rgba(255,255,255,0.4);
+      max-width: 500px;
+      text-align: center;
+      margin-bottom: 3rem;
+      line-height: 1.8;
+    }
+
+    .constellation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+    }
+    .constellation-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 2rem 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .constellation-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.08), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .constellation-card:hover {
+      border-color: rgba(0, 229, 255, 0.35);
+      transform: translateY(-6px);
+      box-shadow: 0 20px 50px -15px rgba(0, 229, 255, 0.15);
+    }
+    .constellation-card:hover::before {
+      opacity: 1;
+    }
+    .constellation-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1rem;
+    }
+    .constellation-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+    }
+    .constellation-cn {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 0.3rem;
+    }
+
+    /* Info Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 1, 10, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: rgba(15, 15, 40, 0.95);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 2.5rem;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+    .modal-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .modal-name {
+      color: var(--accent-cyan);
+      margin-bottom: 1.2rem;
+      font-size: 0.85rem;
+    }
+    .modal-story {
+      color: rgba(255,255,255,0.55);
+      line-height: 1.8;
+      font-size: 0.95rem;
+      margin-bottom: 1.8rem;
+    }
+    .modal-close {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--star-white);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      padding: 0.65rem 2rem;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .modal-close:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+    }
+
+    /* ── Galaxy Cards ── */
+    .galaxy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      width: 100%;
+    }
+    .galaxy-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+    }
+    .galaxy-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .galaxy-card:hover {
+      transform: translateY(-10px) scale(1.02);
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 30px 60px -20px rgba(107, 63, 160, 0.25);
+    }
+    .galaxy-card:hover::after {
+      opacity: 1;
+    }
+    .galaxy-illustration {
+      width: 100%;
+      height: 160px;
+      border-radius: 12px;
+      margin-bottom: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .galaxy-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+    }
+    .galaxy-type {
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 0.8rem;
+    }
+    .galaxy-info {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    /* ── Interactive Section ── */
+    .interactive-area {
+      width: 100%;
+      max-width: 700px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 2.5rem;
+      text-align: center;
+    }
+    #interactive-canvas {
+      width: 100%;
+      height: 320px;
+      border-radius: 12px;
+      cursor: crosshair;
+      background: radial-gradient(ellipse at center, rgba(15,15,45,0.6) 0%, rgba(2,1,10,0.8) 100%);
+      display: block;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: border-color 0.3s;
+    }
+    #interactive-canvas:hover {
+      border-color: rgba(255,255,255,0.15);
+    }
+    .interactive-hint {
+      margin-top: 1rem;
+      color: rgba(255,255,255,0.35);
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+    }
+    .interactive-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1.2rem;
+    }
+    .btn-clear {
+      background: transparent;
+      border: 1px solid rgba(255,107,157,0.3);
+      color: var(--accent-pink);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      padding: 0.6rem 1.8rem;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-clear:hover {
+      border-color: var(--accent-pink);
+      box-shadow: 0 0 24px rgba(255,107,157,0.2);
+      background: rgba(255,107,157,0.05);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .footer-text {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.08em;
+    }
+    .footer-link {
+      color: rgba(255,255,255,0.35);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .footer-link:hover {
+      color: var(--accent-cyan);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      section { padding: 4rem 1.2rem; }
+      .constellation-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      .constellation-card { padding: 1.4rem 0.8rem; }
+      .galaxy-grid { grid-template-columns: 1fr; }
+      #interactive-canvas { height: 240px; }
+      .modal-box { padding: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="starfield"></canvas>
+  <div class="nebula-overlay"></div>
+
+  <div class="main-content">
+
+    <!-- ════ Hero ════ -->
+    <section class="hero-section">
+      <div class="container reveal" data-delay="0">
+        <h1 class="hero-title" id="typewriter-target">穿越亿万光年</h1>
+        <p class="hero-subtitle" id="typewriter-sub"></p>
+        <p class="hero-desc reveal" data-delay="0.2">
+          在无垠的星海中，每一颗微光都承载着宇宙的记忆。
+          从璀璨的银河到深邃的未知，让我们一起仰望星空。
+        </p>
+      </div>
+      <div class="scroll-indicator">
+        <div class="scroll-line"></div>
+        <p class="scroll-text">探索</p>
+      </div>
+    </section>
+
+    <!-- ════ 星座展示 ════ -->
+    <section>
+      <div class="container reveal">
+        <p class="section-label">· 星图 ·</p>
+        <h2 class="section-title">古老星座</h2>
+        <p class="section-desc">点击每一个星座，聆听跨越千年的神话故事</p>
+        <div class="constellation-grid" id="constellationGrid"></div>
+      </div>
+    </section>
+
+    <!-- ════ 星系浏览 ════ -->
+    <section>
+      <div class="container reveal">
+        <p class="section-label">· 深空 ·</p>
+        <h2 class="section-title">瑰丽星系</h2>
+        <p class="section-desc">在看得见与看不见的宇宙深处，这些星系讲述着亿万年演化的故事</p>
+        <div class="galaxy-grid" id="galaxyGrid"></div>
+      </div>
+    </section>
+
+    <!-- ════ 互动探索 ════ -->
+    <section>
+      <div class="container reveal">
+        <p class="section-label">· 创造 ·</p>
+        <h2 class="section-title">你的星空</h2>
+        <p class="section-desc">点击下方画布，种下一颗属于你的星星</p>
+        <div class="interactive-area">
+          <canvas id="interactive-canvas"></canvas>
+          <p class="interactive-hint">点击任意位置创建星星 ✦</p>
+          <div class="interactive-buttons">
+            <button class="btn-clear" id="btnClear">清空星空</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ Footer ════ -->
+    <footer class="footer">
+      <p class="footer-text">仰望星空 · 探索宇宙 · <a href="#" class="footer-link">回到顶端</a></p>
+    </footer>
+
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <h3 class="modal-title" id="modalTitle"></h3>
+      <p class="modal-name" id="modalName"></p>
+      <p class="modal-story" id="modalStory"></p>
+      <button class="modal-close" id="modalClose">关闭</button>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STARFIELD CANVAS (parallax layers)
+// ═══════════════════════════════════════════
+(function () {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let w, h, stars = [], scrollY = 0;
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+
+  class Star {
+    constructor(layer) {
+      this.layer = layer; // 0=far(small,slow), 1=mid, 2=near(big,fast)
+      this.reset(true);
+    }
+    reset(init) {
+      this.x = Math.random() * w;
+      this.y = init ? Math.random() * h : -10;
+      const sizes = [1, 1.8, 2.8];
+      const speeds = [0.15, 0.4, 0.8];
+      const alphas = [0.35, 0.55, 0.8];
+      this.size = sizes[this.layer] * (0.6 + Math.random() * 0.8);
+      this.speed = speeds[this.layer] * (0.5 + Math.random());
+      this.baseAlpha = alphas[this.layer] * (0.6 + Math.random() * 0.4);
+      this.twinkleSpeed = 0.005 + Math.random() * 0.02;
+      this.twinkleOffset = Math.random() * Math.PI * 2;
+      this.hue = Math.random() < 0.15 ? 40 + Math.random() * 20 : 0; // some warm stars
+    }
+    update() {
+      this.y += this.speed;
+      // parallax: slower layers move less with scroll
+      const parallaxFactor = [0.2, 0.5, 0.9][this.layer];
+      this.y += (scrollY * 0.03) * parallaxFactor;
+      if (this.y > h + 10) { this.y = -10; this.x = Math.random() * w; }
+      if (this.y < -10) { this.y = h + 10; this.x = Math.random() * w; }
+    }
+    draw(ctx, time) {
+      const twinkle = Math.sin(time * this.twinkleSpeed + this.twinkleOffset) * 0.3 + 0.7;
+      const alpha = this.baseAlpha * twinkle;
+      const hsl = this.hue ? `hsla(${this.hue}, 80%, 80%, ${alpha})` : `rgba(240,230,210,${alpha})`;
+      ctx.fillStyle = hsl;
+      ctx.beginPath();
+      // add subtle glow to larger stars
+      if (this.size > 1.5) {
+        ctx.shadowColor = 'rgba(180,160,255,0.4)';
+        ctx.shadowBlur = this.size * 2;
+      }
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function initStars() {
+    stars = [];
+    const isMobile = w < 640;
+    const counts = isMobile ? [120, 70, 30] : [300, 150, 60];
+    for (let layer = 0; layer < 3; layer++) {
+      for (let i = 0; i < counts[layer]; i++) {
+        stars.push(new Star(layer));
+      }
+    }
+  }
+
+  let animFrame;
+  function animate(time) {
+    ctx.clearRect(0, 0, w, h);
+    // subtle background gradient
+    const bgGrad = ctx.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, Math.max(w, h) * 0.8);
+    bgGrad.addColorStop(0, 'rgba(10,10,46,0.3)');
+    bgGrad.addColorStop(1, 'rgba(2,1,10,0.6)');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    for (const star of stars) {
+      star.update();
+      star.draw(ctx, time * 0.001);
+    }
+    animFrame = requestAnimationFrame(animate);
+  }
+
+  function onScroll() {
+    scrollY = window.scrollY;
+  }
+
+  resize();
+  initStars();
+  window.addEventListener('resize', () => { resize(); initStars(); });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  animate(performance.now());
+})();
+
+// ═══════════════════════════════════════════
+//  TYPEWRITER EFFECT
+// ═══════════════════════════════════════════
+(function () {
+  const phrases = ['ACROSS THE UNIVERSE', '探索无尽星海', '邂逅深邃深空'];
+  const el = document.getElementById('typewriter-sub');
+  let phraseIdx = 0, charIdx = 0, isDeleting = false;
+
+  function type() {
+    const current = phrases[phraseIdx];
+    if (!isDeleting) {
+      el.textContent = current.slice(0, charIdx + 1);
+      charIdx++;
+      if (charIdx === current.length) {
+        setTimeout(() => { isDeleting = true; type(); }, 1800);
+        return;
+      }
+      setTimeout(type, 80);
+    } else {
+      el.textContent = current.slice(0, charIdx - 1);
+      charIdx--;
+      if (charIdx === 0) {
+        isDeleting = false;
+        phraseIdx = (phraseIdx + 1) % phrases.length;
+        setTimeout(type, 400);
+        return;
+      }
+      setTimeout(type, 35);
+    }
+  }
+
+  type();
+})();
+
+// ═══════════════════════════════════════════
+//  REVEAL ON SCROLL
+// ═══════════════════════════════════════════
+(function () {
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const delay = parseFloat(entry.target.dataset.delay || '0') * 1000;
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, delay);
+      }
+    });
+  }, { threshold: 0.15 });
+  reveals.forEach(el => observer.observe(el));
+})();
+
+// ═══════════════════════════════════════════
+//  CONSTELLATIONS
+// ═══════════════════════════════════════════
+(function () {
+  const constellations = [
+    {
+      en: 'Orion',
+      cn: '猎户座',
+      story: '猎户座是夜空中最耀眼的星座之一。在希腊神话中，俄里翁（Orion）是一位杰出的猎人，死后被宙斯升至天穹，化为此座。腰带上的三颗星赫赫有名，参宿四和参宿七交替闪烁着红与蓝的光辉。',
+      points: [[50,10],[50,40],[30,55],[40,75],[50,85],[60,55],[70,40],[70,10]]
+    },
+    {
+      en: 'Ursa Major',
+      cn: '大熊座',
+      story: '大熊座包含著名的北斗七星。希腊神话中，美丽的仙女卡利斯托被赫拉变成了一头熊，宙斯将她升入天空。北斗七星永远在北天旋转，为无数旅人指引北方。',
+      points: [[20,15],[40,25],[55,30],[65,50],[75,70],[55,60],[35,70]]
+    },
+    {
+      en: 'Cassiopeia',
+      cn: '仙后座',
+      story: '仙后座以 \"W\" 形横跨北天。卡西欧佩亚是埃塞俄比亚的王后，因夸耀女儿安德洛墨达的美貌触怒海神。作为惩罚，她被绑在王座上倒挂天空，永恒地旋转。',
+      points: [[15,70],[35,35],[50,65],[65,30],[85,75]]
+    },
+    {
+      en: 'Scorpius',
+      cn: '天蝎座',
+      story: '天蝎座是南方最壮丽的星座之一。它受赫拉之命追杀猎户俄里翁，至今在天空中永不与猎户座同时出现。心宿二——这颗红超巨星是天蝎的心脏，燃烧着血红色的光芒。',
+      points: [[50,5],[45,25],[40,45],[55,65],[70,80],[80,70],[75,50],[85,30]]
+    },
+    {
+      en: 'Cygnus',
+      cn: '天鹅座',
+      story: '天鹅座展翅横跨银河。宙斯化身天鹅吸引了丽达。这只永恒的天鹅头尾由天津四和辇道增七组成，双翼展开时横跨银河两岸，仿佛正在穿越宇宙之河。',
+      points: [[50,5],[30,30],[15,55],[50,45],[70,30],[85,60],[50,80],[50,60]]
+    },
+    {
+      en: 'Leo',
+      cn: '狮子座',
+      story: '狮子座是春季星空的王者。赫拉克勒斯的十二项任务之一就是击败涅墨亚雄狮——一头刀枪不入的巨兽。胜利之后，这头雄狮被升入天空。狮子座的轩辕十四是最醒目的帝王之星。',
+      points: [[25,15],[50,5],[75,25],[60,55],[80,80],[50,65],[20,75],[30,50]]
+    }
+  ];
+
+  function drawConstellationSVG(points, color) {
+    let d = '';
+    for (let i = 0; i < points.length; i++) {
+      d += (i === 0 ? 'M' : 'L') + points[i][0] + ' ' + points[i][1];
+    }
+    const dots = points.map(p =>
+      `<circle cx="${p[0]}" cy="${p[1]}" r="2.5" fill="${color}" opacity="0.9"><animate attributeName="opacity" values="0.4;0.9;0.4" dur="${2 + Math.random() * 2}s" repeatCount="indefinite"/></circle>`
+    ).join('');
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="${d}" stroke="${color}" stroke-width="0.6" fill="none" opacity="0.5" stroke-dasharray="2 2"/>
+      ${dots}
+    </svg>`;
+  }
+
+  const grid = document.getElementById('constellationGrid');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalName = document.getElementById('modalName');
+  const modalStory = document.getElementById('modalStory');
+
+  constellations.forEach((c, i) => {
+    const colors = ['#00e5ff', '#ffd54f', '#ff6b9d', '#a78bfa', '#67e8f9', '#fbbf24'];
+    const card = document.createElement('div');
+    card.className = 'constellation-card reveal';
+    card.dataset.delay = (i * 0.08).toString();
+    card.innerHTML = `
+      <div class="constellation-icon">${drawConstellationSVG(c.points, colors[i])}</div>
+      <div class="constellation-name">${c.en}</div>
+      <div class="constellation-cn">${c.cn}</div>
+    `;
+    card.addEventListener('click', () => {
+      modalTitle.textContent = c.cn;
+      modalName.textContent = c.en;
+      modalStory.textContent = c.story;
+      modalOverlay.classList.add('active');
+    });
+    grid.appendChild(card);
+  });
+
+  document.getElementById('modalClose').addEventListener('click', () => {
+    modalOverlay.classList.remove('active');
+  });
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) modalOverlay.classList.remove('active');
+  });
+})();
+
+// ═══════════════════════════════════════════
+//  GALAXY CARDS
+// ═══════════════════════════════════════════
+(function () {
+  const galaxies = [
+    {
+      name: 'Milky Way Galaxy', cn: '银河系', type: '棒旋星系',
+      info: '我们的家园星系，直径约 10 万光年，包含 1000-4000 亿颗恒星。太阳位于猎户臂上，距离银心约 2.6 万光年。',
+      gradient: ['#1a1a4e', '#2a1a5e', '#4a2a7e']
+    },
+    {
+      name: 'Andromeda Galaxy', cn: '仙女座星系', type: '旋涡星系',
+      info: '距地球约 254 万光年，是本星系群中最大的星系。它正以每秒 110 公里的速度向我们靠近，预计 45 亿年后与银河系相撞。',
+      gradient: ['#1e3a5f', '#2a4a7f', '#4a6aaf']
+    },
+    {
+      name: 'Messier 87', cn: 'M87 星系', type: '椭圆星系',
+      info: '位于室女座，距地球约 5350 万光年。2019 年人类首次拍摄到其中心的超大质量黑洞照片——这是一张改变天文学历史的影像。',
+      gradient: ['#1a1a3e', '#3a1a5e', '#5a2a8e']
+    }
+  ];
+
+  const grid = document.getElementById('galaxyGrid');
+
+  galaxies.forEach((g, i) => {
+    const card = document.createElement('div');
+    card.className = 'galaxy-card reveal';
+    card.dataset.delay = (i * 0.1).toString();
+    card.innerHTML = `
+      <div class="galaxy-illustration" style="background: radial-gradient(ellipse at ${30 + i * 20}% ${40 + i * 15}%, ${g.gradient[2]} 0%, ${g.gradient[1]} 35%, ${g.gradient[0]} 70%, #02010a 100%);">
+        <svg width="80" height="80" viewBox="0 0 80 80" style="opacity:0.7">
+          <ellipse cx="40" cy="40" rx="30" ry="8" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5" transform="rotate(${25 + i * 15} 40 40)"/>
+          <ellipse cx="40" cy="40" rx="20" ry="5" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" transform="rotate(${25 + i * 15} 40 40)"/>
+          <circle cx="40" cy="40" r="4" fill="rgba(255,255,255,0.5)"/>
+          <circle cx="40" cy="40" r="1.5" fill="rgba(255,255,255,0.9)"/>
+        </svg>
+      </div>
+      <div class="galaxy-name">${g.name}</div>
+      <div class="galaxy-type">${g.cn} · ${g.type}</div>
+      <p class="galaxy-info">${g.info}</p>
+    `;
+    grid.appendChild(card);
+  });
+})();
+
+// ═══════════════════════════════════════════
+//  INTERACTIVE STAR CANVAS
+// ═══════════════════════════════════════════
+(function () {
+  const canvas = document.getElementById('interactive-canvas');
+  const ctx = canvas.getContext('2d');
+  const btnClear = document.getElementById('btnClear');
+  let userStars = [];
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = 320;
+    drawAll();
+  }
+
+  function drawAll() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // background stars (hint)
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${0.08 + Math.random() * 0.08})`;
+      ctx.beginPath();
+      ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 0.5 + Math.random() * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const s of userStars) {
+      s.draw(ctx);
+    }
+  }
+
+  class UserStar {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.radius = 2 + Math.random() * 3;
+      this.color = ['#ffffff', '#ffd54f', '#00e5ff', '#ff6b9d', '#a78bfa', '#67e8f9'][Math.floor(Math.random() * 6)];
+      this.phase = Math.random() * Math.PI * 2;
+      this.spikes = 4 + Math.floor(Math.random() * 4);
+      this.innerR = this.radius * 0.35;
+      this.outerR = this.radius;
+    }
+    draw(ctx) {
+      const t = Date.now() * 0.001;
+      const pulse = Math.sin(t * 2 + this.phase) * 0.15 + 1;
+      const r = this.outerR * pulse;
+      const ir = this.innerR * pulse;
+
+      // glow
+      const glow = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, r * 2.5);
+      glow.addColorStop(0, this.color);
+      glow.addColorStop(0.3, this.color + '88');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, r * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // star shape
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      const angleStep = Math.PI / this.spikes;
+      for (let i = 0; i < this.spikes * 2; i++) {
+        const a = i * angleStep - Math.PI / 2;
+        const radius = i % 2 === 0 ? r : ir;
+        const sx = this.x + Math.cos(a) * radius;
+        const sy = this.y + Math.sin(a) * radius;
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    userStars.push(new UserStar(x, y));
+    drawAll();
+  });
+
+  btnClear.addEventListener('click', () => {
+    userStars = [];
+    drawAll();
+  });
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  // animate user stars
+  function anim() {
+    drawAll();
+    requestAnimationFrame(anim);
+  }
+  anim();
+})();
+</script>
+</body>
+</html>
